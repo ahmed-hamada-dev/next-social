@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  createComment,
-  deletePost,
-  getPosts,
-  toggleLike,
-} from "@/actions/postAction";
+import { createComment, getPosts, toggleLike } from "@/actions/postAction";
 import { SignInButton, useUser } from "@clerk/nextjs";
 import { useState } from "react";
 
@@ -13,7 +8,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { formatDistanceToNow } from "date-fns";
-import { DeleteAlertDialog } from "./DeleteAlertDialog";
 import { Button } from "@/components/ui/button";
 import {
   HeartIcon,
@@ -23,6 +17,7 @@ import {
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import PostHeader from "./PostHeader";
 
 type Posts = Awaited<ReturnType<typeof getPosts>>;
 type Post = Posts[number];
@@ -32,7 +27,7 @@ function PostCard({ post, dbUserId }: { post: Post; dbUserId: string | null }) {
   const [newComment, setNewComment] = useState("");
   const [isCommenting, setIsCommenting] = useState(false);
   const [isLiking, setIsLiking] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  // const [isDeleting, setIsDeleting] = useState(false);
   const [hasLiked, setHasLiked] = useState(
     post.likes.some((like) => like.userId === dbUserId),
   );
@@ -70,20 +65,6 @@ function PostCard({ post, dbUserId }: { post: Post; dbUserId: string | null }) {
     }
   };
 
-  const handleDeletePost = async () => {
-    if (isDeleting) return;
-    try {
-      setIsDeleting(true);
-      const result = await deletePost(post.id);
-      if (result?.success) toast.success("Post deleted successfully");
-      else throw new Error(result?.error);
-    } catch (error) {
-      toast.error("Failed to delete post");
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
   return (
     <Card className="overflow-hidden">
       <CardContent className="p-4 sm:p-6">
@@ -94,51 +75,17 @@ function PostCard({ post, dbUserId }: { post: Post; dbUserId: string | null }) {
                 <AvatarImage src={post.author.image ?? "/avatar.png"} />
               </Avatar>
             </Link>
-
-            {/* POST HEADER & TEXT CONTENT */}
-            <div className="min-w-0 flex-1">
-              <div className="flex items-start justify-between">
-                <div className="flex flex-col truncate sm:flex-row sm:items-center sm:space-x-2">
-                  <Link
-                    href={`/profile/${post.author.username}`}
-                    className="truncate font-semibold"
-                  >
-                    {post.author.name}
-                  </Link>
-                  <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                    <Link href={`/profile/${post.author.username}`}>
-                      @{post.author.username}
-                    </Link>
-                    <span>•</span>
-                    <span>
-                      {formatDistanceToNow(new Date(post.createdAt))} ago
-                    </span>
-                  </div>
-                </div>
-                {/* Check if current user is the post author */}
-                {dbUserId === post.author.id && (
-                  <DeleteAlertDialog
-                    isDeleting={isDeleting}
-                    onDelete={handleDeletePost}
-                  />
-                )}
-              </div>
-              <p className="mt-2 break-words text-sm text-foreground">
-                {post.content}
-              </p>
-            </div>
+            <PostHeader
+              authorId={post.author.id}
+              authorName={post.author.name}
+              authorUsername={post.author.username}
+              dbUserId={dbUserId}
+              postCreatedAt={post.createdAt}
+              content={post.content}
+              image={post.image}
+              postID={post.id}
+            />
           </div>
-
-          {/* POST IMAGE */}
-          {post.image && (
-            <div className="overflow-hidden rounded-lg">
-              <img
-                src={post.image}
-                alt="Post content"
-                className="h-auto w-full object-cover"
-              />
-            </div>
-          )}
 
           {/* LIKE & COMMENT BUTTONS */}
           <div className="flex items-center space-x-4 pt-2">
